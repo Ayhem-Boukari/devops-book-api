@@ -1,0 +1,33 @@
+# Kubernetes Ingress for DevOps Book API
+# ========================================
+# Ingress exposes HTTP routes from outside the cluster to services within.
+# Provides load balancing, SSL termination, and name-based virtual hosting.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devops-book-api
+  namespace: devops-book-api
+  labels:
+    app: devops-book-api
+  annotations:
+    # Nginx ingress controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Rate limiting for API protection
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  # Ingress class for the controller
+  ingressClassName: nginx
+  rules:
+    # Host-based routing
+    - host: bookapi.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: devops-book-api
+                port:
+                  number: 80

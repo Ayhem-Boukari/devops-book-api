@@ -1,0 +1,86 @@
+# Kubernetes Deployment for DevOps Book API
+# ===========================================
+# A Deployment ensures the desired number of pod replicas are running
+# and handles rolling updates for zero-downtime deployments.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-book-api
+  namespace: devops-book-api
+  labels:
+    app: devops-book-api
+    version: v1
+spec:
+  # Number of pod replicas for high availability
+  replicas: 2
+  # Selector to identify pods managed by this deployment
+  selector:
+    matchLabels:
+      app: devops-book-api
+  # Strategy for rolling updates
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Max pods over desired count during update
+      maxUnavailable: 0  # Zero downtime deployment
+  template:
+    metadata:
+      labels:
+        app: devops-book-api
+        version: v1
+      annotations:
+        # Prometheus scraping annotations
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: devops-book-api
+          # Image will be updated by CD pipeline with specific tag
+          image: devops-book-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+              name: http
+          # Environment variables from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: devops-book-api-config
+          # Resource management - prevents resource starvation
+          resources:
+            requests:
+              cpu: "100m"      # 0.1 CPU cores
+              memory: "128Mi"  # 128 MB RAM
+            limits:
+              cpu: "200m"      # 0.2 CPU cores max
+              memory: "256Mi"  # 256 MB RAM max
+          # Liveness probe - restart container if it becomes unhealthy
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Readiness probe - don't send traffic until ready
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Security context for the container
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

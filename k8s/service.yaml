@@ -1,0 +1,23 @@
+# Kubernetes Service for DevOps Book API
+# ========================================
+# A Service provides a stable network endpoint for accessing pods.
+# ClusterIP type makes the service accessible only within the cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-book-api
+  namespace: devops-book-api
+  labels:
+    app: devops-book-api
+spec:
+  # ClusterIP - internal cluster access only
+  type: ClusterIP
+  # Port mapping: external port 80 -> container port 5000
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+      protocol: TCP
+  # Selector must match pod labels in deployment
+  selector:
+    app: devops-book-api

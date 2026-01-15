@@ -1,0 +1,22 @@
+# Kubernetes ConfigMap for DevOps Book API
+# ==========================================
+# ConfigMaps decouple configuration from container images,
+# making applications more portable and easier to manage across environments.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devops-book-api-config
+  namespace: devops-book-api
+  labels:
+    app: devops-book-api
+data:
+  # Flask environment mode
+  FLASK_ENV: "production"
+  # Logging level for the application
+  LOG_LEVEL: "INFO"
+  # Application name for identification
+  APP_NAME: "devops-book-api"
+  # Port the application listens on
+  APP_PORT: "5000"
+  # Gunicorn workers (2x CPU + 1 is recommended)
+  GUNICORN_WORKERS: "2"

@@ -1,0 +1,11 @@
+# Kubernetes Namespace for DevOps Book API
+# =========================================
+# A namespace provides logical isolation for all application resources.
+# This allows for better resource management, access control, and organization.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devops-book-api
+  labels:
+    app: devops-book-api
+    environment: production

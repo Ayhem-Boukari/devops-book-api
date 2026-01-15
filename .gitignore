@@ -1,0 +1,90 @@
+# =============================================================================
+# .gitignore for DevOps Book API
+# =============================================================================
+
+# ======================== PYTHON ========================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# ======================== TESTING ========================
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+coverage.xml
+*.cover
+*.py,cover
+
+# ======================== IDE ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ======================== ENVIRONMENT ========================
+.env
+.env.local
+.env.*.local
+*.env
+
+# ======================== DOCKER ========================
+*.log
+
+# ======================== SECURITY REPORTS ========================
+*-report.json
+*-report.html
+*-report.txt
+bandit-output.json
+trivy-results.sarif
+
+# ======================== OS ========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ======================== KUBERNETES ========================
+kubeconfig
+*.kubeconfig
+
+# ======================== MISC ========================
+*.bak
+*.tmp
+*.temp
+.cache/

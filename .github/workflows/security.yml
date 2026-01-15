@@ -1,0 +1,213 @@
+# Security Pipeline - SAST, DAST, and Vulnerability Scanning
+# ===========================================================
+# This workflow performs comprehensive security scanning including:
+# - SAST (Static Application Security Testing) with Bandit and Semgrep
+# - Dependency vulnerability checking with pip-audit and safety
+# - DAST (Dynamic Application Security Testing) with OWASP ZAP
+# - Container image scanning with Trivy
+
+name: Security Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly on Sundays at midnight
+    - cron: '0 0 * * 0'
+
+env:
+  PYTHON_VERSION: "3.11"
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/devops-book-api
+
+jobs:
+  # ==================== BANDIT SAST ====================
+  sast-bandit:
+    name: 🔒 SAST - Bandit Security Scanner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r app/ -f json -o bandit-report.json --exit-zero
+          bandit -r app/ -f txt -o bandit-report.txt --exit-zero
+          echo "=== Bandit Security Report ===" 
+          cat bandit-report.txt
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: |
+            bandit-report.json
+            bandit-report.txt
+          retention-days: 30
+
+  # ==================== SEMGREP SAST ====================
+  sast-semgrep:
+    name: 🔒 SAST - Semgrep Security Scanner
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep scan
+        run: |
+          semgrep scan --config=p/python --config=p/flask --json --output=semgrep-report.json app/ || true
+          semgrep scan --config=p/python --config=p/flask app/ || true
+
+      - name: Upload Semgrep report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-report
+          path: semgrep-report.json
+          retention-days: 30
+
+  # ==================== DEPENDENCY CHECK ====================
+  dependency-check:
+    name: 📦 Dependency Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies and security tools
+        run: |
+          pip install -r requirements.txt
+          pip install pip-audit safety
+
+      - name: Run pip-audit
+        run: |
+          pip-audit --format json --output pip-audit-report.json || true
+          pip-audit || true
+
+      - name: Run safety check
+        run: |
+          safety check --json --output safety-report.json || true
+          safety check || true
+
+      - name: Upload dependency reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-reports
+          path: |
+            pip-audit-report.json
+            safety-report.json
+          retention-days: 30
+
+  # ==================== TRIVY IMAGE SCAN ====================
+  trivy-scan:
+    name: 🐳 Container Image Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image for scanning
+        run: docker build -t devops-book-api:scan .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'devops-book-api:scan'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          output: 'trivy-report.txt'
+
+      - name: Run Trivy (JSON output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'devops-book-api:scan'
+          format: 'json'
+          output: 'trivy-report.json'
+
+      - name: Display Trivy report
+        run: cat trivy-report.txt
+
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: |
+            trivy-report.txt
+            trivy-report.json
+          retention-days: 30
+
+  # ==================== DAST - OWASP ZAP ====================
+  dast-zap:
+    name: 🌐 DAST - OWASP ZAP Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and start application
+        run: |
+          docker build -t devops-book-api:test .
+          docker run -d --name test-api -p 5000:5000 devops-book-api:test
+          # Wait for application to be ready
+          sleep 10
+          # Verify application is running
+          curl -f http://localhost:5000/health || exit 1
+
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: 'http://localhost:5000'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j'
+          allow_issue_writing: false
+
+      - name: Stop test container
+        if: always()
+        run: docker stop test-api || true
+
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-report
+          path: report_html.html
+          retention-days: 30
+
+  # ==================== SECURITY SUMMARY ====================
+  security-summary:
+    name: 📊 Security Summary
+    runs-on: ubuntu-latest
+    needs: [sast-bandit, sast-semgrep, dependency-check, trivy-scan]
+    if: always()
+    steps:
+      - name: Security scan summary
+        run: |
+          echo "=========================================="
+          echo "       SECURITY SCAN SUMMARY"
+          echo "=========================================="
+          echo ""
+          echo "✅ Bandit SAST: ${{ needs.sast-bandit.result }}"
+          echo "✅ Semgrep SAST: ${{ needs.sast-semgrep.result }}"
+          echo "✅ Dependency Check: ${{ needs.dependency-check.result }}"
+          echo "✅ Trivy Image Scan: ${{ needs.trivy-scan.result }}"
+          echo ""
+          echo "Review the artifacts for detailed reports."

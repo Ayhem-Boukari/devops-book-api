@@ -1,0 +1,43 @@
+# Prometheus Configuration for DevOps Book API
+# ==============================================
+# Prometheus is an open-source monitoring and alerting toolkit.
+# This configuration defines how Prometheus scrapes metrics from the API.
+
+global:
+  # How frequently to scrape targets
+  scrape_interval: 15s
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+  # Attach these labels to any time series or alerts
+  external_labels:
+    monitor: 'devops-book-api-monitor'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rule files for recording rules and alerts
+rule_files: []
+
+# Scrape configuration for metrics collection
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+
+  # Book API application metrics
+  - job_name: 'book-api'
+    static_configs:
+      - targets: ['api:5000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    # Add labels to all metrics from this job
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'book-api'

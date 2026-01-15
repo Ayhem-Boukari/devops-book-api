@@ -1,0 +1,66 @@
+# =============================================================================
+# .dockerignore for DevOps Book API
+# =============================================================================
+# Excludes files from Docker build context to reduce image size and build time
+
+# Git
+.git
+.gitignore
+.github
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Documentation (except README for reference)
+*.md
+!README.md
+
+# Tests (not needed in production image)
+tests/
+.pytest_cache
+.coverage
+htmlcov/
+coverage.xml
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Kubernetes manifests (not needed in image)
+k8s/
+
+# Monitoring configs (mounted separately)
+prometheus/
+grafana/
+
+# IDE
+.vscode/
+.idea/
+
+# Security reports
+*-report.json
+*-report.txt
+*-report.html
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Make
+Makefile
+
+# OS files
+.DS_Store
+Thumbs.db
